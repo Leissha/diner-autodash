@@ -1,0 +1,180 @@
+1. FSM Transitions
+       Description: Customers transition through states (WAITING, UNHAPPY, ANGRY, LEAVING, SEATED, ORDERED, EATING) 
+       based on time and interactions. Their visual representation (triangle color) updates with their state.
+       
+       Tested Aspects: Customer state changes, satisfaction decay, visual feedback.
+       
+       Terminal Log Examples:
+           Spawn (Implied Initial State): Example of a newly spawned customer in the queue at a specific tick
+           `[Customer#240] POS CHECK: pos=(100.0, 420.0) | FSM=WAITING | arrived=False | seat_assigned=False | wait=6 | sat=50` 
+
+           Satisfaction Decay and State Change: Observing logs across ticks: 
+           `[Customer#235] POS CHECK: pos=(100.0, 180.0) | FSM=ANGRY | ... | wait=29 | sat=15` at tick 262, 
+           followed by `Customer#235: LEAVING (wait_time=30, sat=0)` at tick 263, 
+           demonstrates satisfaction decreasing over time and triggering state changes from ANGRY to LEAVING.
+
+           State Change due to wait time: 
+           `Customer#220: ANGRY    (wait_time=20, sat=15)` at tick 248 shows a specific instance of a customer 
+           becoming ANGRY after reaching a certain wait time threshold.
+
+       Consistency/Feature Highlight Log Examples:
+           - Consistent State Checks: 
+                `[Customer#0] POS CHECK: pos=(280.0, 280.0) | FSM=SEATED | arrived=True | seat_assigned=True | wait=8 | sat=65` 
+                (Repeated logging for seated customers across many ticks demonstrates the continuous monitoring and consistent state values over time.)
+           - Decay in Action: `[Customer#210] POS CHECK: pos=(100.0, 180.0) | FSM=ANGRY | ... | wait=27 | sat=15` 
+            (at tick 236) and `[Customer#210] POS CHECK: pos=(100.0, 180.0) | FSM=ANGRY | ... | wait=29 | sat=15` 
+            (at tick 238) show the consistent, tick-based decay of wait time and satisfaction for a customer in the ANGRY state.
+           - State Transition Trigger: `Customer#220: ANGRY    
+           (wait_time=20, sat=15)` (at tick 248) and `Customer#220: LEAVING  (wait_time=30, sat=0)` 
+           (at tick 249) clearly show a state transition (ANGRY to LEAVING) being triggered by the satisfaction reaching zero due to wait time decay, 
+           highlighting the FSM's rule-based transitions.
+       
+       ILO Mapping: Primarily demonstrates ILO1 (Software development techniques: OOP & rendering) through the Customer class implementation 
+       and visual state changes. The consistent logging of state attributes and the triggered transitions based on internal logic highlight 
+       the object-oriented design and predictable behavior modeled by the FSM.
+
+2. A*  Pathfinding
+       Description: The Servo agent uses the A* algorithm to find efficient paths between locations in the grid, avoiding blocked areas (tables).
+       
+       Tested Aspects: Correct path calculation, obstacle avoidance (blocked cells), efficiency of path.
+       
+       Terminal Log Examples:
+           Skipping blocked neighbors during search: Logs like `[DEBUG][Pathfinder] Skipping blocked neighbor (7, 5)` 
+           during path calculation from (7,6) to (6,1) at tick 262 demonstrate the pathfinding algorithm correctly identifying 
+           and avoiding non-walkable cells around tables.
+           Successful path generation with specific waypoints: `[Pathfinder] Found path with 7 waypoints: 
+           [(7, 6), (6, 6), (6, 5), (6, 4), (6, 3), (6, 2), (6, 1)]` also at tick 262, explicitly shows the output of the A* algorithm 
+           – the calculated sequence of grid cells the agent will traverse to reach its goal.
+       Consistency/Feature Highlight Log Examples:
+           - Path Calculation on Demand: Observing `[Pathfinder] Found path...` logs occurring consistently whenever the servo is given 
+           a new task requiring movement (e.g., after a GOAP decision to SeatCustomer or PickUpDish, seen at ticks 262 and 238/254 in previous runs) 
+           demonstrates the A* algorithm is reliably invoked for navigation planning as needed.
+           - Obstacle Handling Consistency: Repeated `[DEBUG][Pathfinder] Skipping blocked neighbor...` 
+           logs across different pathfinding requests indicate the obstacle avoidance logic is consistently applied 
+           whenever the algorithm encounters blocked cells, regardless of the start and end points.
+       
+       ILO Mapping: Directly addresses ILO2 (Graph & path-planning techniques) by providing concrete evidence from the logs of the A* algorithm's execution, including how it handles obstacles and the specific path generated, demonstrating graph traversal and pathfinding in action within the simulation.
+
+3. Steering Behavior
+       Description: The Servo agent uses steering forces to smoothly navigate along the calculated A* path, 
+       avoiding jitter and showing realistic movement.
+       
+       Tested Aspects: Smooth movement, following waypoints, avoiding oscillations, achieving target position.
+       
+       Terminal Log Examples (Servo Position Updates showing movement over ticks):
+           Smooth movement between points: Observing sequences of servo positions logged per tick, 
+           such as `[World] Drawing servo at pos=(600.0, 520.0)` at tick 263, then `[World] Drawing servo at pos=(599.92, 520.0)` at tick 264, 
+           demonstrates the incremental and smooth updates to the agent's position resulting from applied steering forces, rather than abrupt teleports.
+           Reaching intermediate and final destinations: Logs showing the servo arriving precisely at key positions,
+           corresponding to path waypoints or action destinations (e.g., `[World] Drawing servo at pos=(520.0, 120.0)` 
+           at tick 238 after pathfinding to the pickup location), verify the steering is effectively guiding the agent to its targets.
+       Consistency/Feature Highlight Log Examples:
+           - Continuous Smooth Movement: Frequent `[World] Drawing servo at pos=(..., ...)` logs with small, 
+           consistent changes in coordinates over many ticks when the servo is moving highlight the continuous 
+           application of steering forces for smooth navigation along the path, a core feature of steering behaviors.
+           - Waypoint Following: Observing the servo's position logs during a longer movement sequence (e.g., across ticks 238-244) 
+           shows the agent smoothly moving between multiple waypoints identified by A*, demonstrating the steering effectively follows the planned path.
+       
+       ILO Mapping: Directly demonstrates ILO3 (Steering force models) by showing the real-time, 
+       smooth and incremental changes in the servo agent's position in the logs across ticks, 
+       which are a direct result of the applied steering forces enabling realistic navigation along the planned path calculated by A*.
+
+4. GOAP (Goal-Oriented Action Planning)
+       Description: The Servo agent uses a GOAP planner to determine the best sequence of actions 
+       (e.g., Seat Customer, Pick Up Dish, Deliver Dish) to achieve its goals (e.g., serve customers).
+       
+       Tested Aspects: Planner selecting appropriate actions based on the current world state 
+       (e.g., waiting customers, ready orders, free tables), action execution initiation, 
+       rational decision-making based on perceived state.
+       
+       Terminal Log Examples:
+           Planner deciding on an action based on needs: Logs from tick 254 showing `[GOAP] Found 3 WAITING/ANGRY customers` 
+           and `[GOAP] Free tables right now: [(600.0, 440.0)]` followed by `[GOAP] → SeatCustomer for Customer#230` at tick 254 
+           indicate the planner assessed the world state (customers waiting, a table is free) 
+           and chose an appropriate action to achieve a goal (seat a waiting customer).
+           Planner deciding on no action when conditions aren't met: Logs from tick 393 showing `[GOAP] Found 0 WAITING/ANGRY customers`, `
+           [GOAP] Free tables right now: [(600.0, 440.0)]`, and then `[GOAP] → No action` confirm the planner correctly assesses the world state 
+           and determines when no current goals requiring immediate action are achievable (e.g., no waiting customers to seat, no orders ready).
+       
+       Consistency/Feature Highlight Log Examples:
+           - Consistent Goal Evaluation: Logs showing `[GOAP] Found X WAITING/ANGRY customers` and `[GOAP] Free tables right now: [...]` 
+           appearing regularly throughout the simulation demonstrate the GOAP planner consistently evaluating the state of the simulation 
+           to identify potential goals, highlighting its continuous monitoring.
+           - Action Selection Consistency: Observing repeated patterns of GOAP decisions (e.g., `[GOAP] → PickUpDish...`, 
+           `[GOAP] → DeliverDish...`, `[GOAP] → SeatCustomer...`) whenever the relevant preconditions are met consistently 
+           demonstrates the planner's reliable logic for selecting actions based on the world state.
+           - Adaptive Planning in Action: A sequence like `[GOAP] Found 4 WAITING/ANGRY customers` (tick 249) 
+           followed by a table freeing up (`[Customer#200] LEAVING...freeing table` at tick 254) and 
+           then `[GOAP] Free tables right now: [(600.0, 440.0)]` and `[GOAP] → SeatCustomer...` (tick 254) 
+           demonstrates the planner adapting its plan in response to a change in the world state (a table becoming available).
+       
+       ILO Mapping: Primarily addresses ILO4 (Adaptive planning actions) by providing log evidence of the GOAP planner's dynamic decision-making process. The logs show the planner evaluating the world state and selecting actions or deciding against actions based on that evaluation, demonstrating its adaptive and goal-oriented behavior.
+
+5. GOAP Seating & Delivery Priority (Specific GOAP Testing)
+       Description: Tests specific scenarios to verify the GOAP planner's priority system for choosing between potential goals, 
+       such as prioritizing seating waiting customers over other less critical tasks, or prioritizing order delivery for customers whose food is ready.
+       
+       Tested Aspects: Goal prioritization logic within the GOAP planner under specific conditions, 
+       demonstrating rational agent behavior according to defined priorities.
+       
+       Terminal Log Examples (illustrating priority in action):
+           Seating Priority: A log sequence from tick 254 showing a table freeing up (`[Customer#200] LEAVING → freeing table (600.0, 440.0)`), 
+           then `[GOAP] Free tables right now: [(600.0, 440.0)]`, and immediately followed by `[GOAP] → SeatCustomer for Customer#230` 
+           demonstrates the planner correctly prioritizing seating when a table becomes available and a customer is waiting.
+           Delivery Priority: Logs showing a customer state update to `Customer#230: order_ready = True` at tick 262, 
+           followed immediately by the GOAP decision `[GOAP] → PickUpDish for Customer#230` at the same tick, 
+           indicate the planner recognizes a ready order and prioritizes actions to deliver it over other potential tasks.
+       Consistency/Feature Highlight Log Examples:
+           - Consistent Priority Application: Across multiple instances in the logs where both a waiting customer and a customer 
+           with a ready order might be present, observing the GOAP planner consistently choosing the higher-priority task first (as designed)
+            demonstrates the reliable application of the priority system.
+       
+       ILO Mapping: Further demonstrates ILO4 (Adaptive planning actions) by offering specific log-based examples that confirm the GOAP planner's 
+       implementation correctly handles goal prioritization and makes rational decisions based on the urgency or importance of different tasks 
+       in the restaurant simulation, as defined by the priority rules.
+
+6. Integration
+       Description: Running the full simulation demonstrates how all the individual components (Customers, Servo Agent, FSM, GOAP, Pathfinding, Steering) 
+       interact and behave together over time, simulating a basic restaurant environment and showcasing the combined effect of different AI techniques.
+       Tested Aspects: System stability, overall behavior flow (customer life cycles from arrival to leaving, agent task completion sequences), 
+       successful interaction and communication between different AI components, emergent system behavior from component interaction.
+       
+       Terminal Log Examples (Showing a sequence of interactions and state changes across ticks illustrating integrated behavior):
+           Full service flow for a customer: A comprehensive log sequence for Customer#230, showing their transitions through states 
+           (e.g., `FSM=WAITING` at tick 250 -> `FSM=SEATED` at tick 255 -> `FSM=ORDERED` at tick 256 -> `order_ready = True` at tick 262 
+            -> agent performing `→ PickUpDish` at tick 262 and `→ DeliverDish` at tick 238 (from previous run, demonstrating dish delivery)
+            -> `FSM=EATING` at tick 245 (from previous run)), interspersed with the servo agent's corresponding GOAP actions and movement logs (`[World] Drawing servo...`), 
+            provides a clear picture of how the integrated system handles a complete customer interaction across various components.
+           Agent responding to dynamic changes: Logs showing a customer becoming ANGRY or LEAVING (e.g., `Customer#210: LEAVING` at tick 238, `Customer#220: ANGRY` at tick 248) 
+           and the GOAP planner subsequently adjusting its list of waiting/angry customers (`[GOAP] Found X WAITING/ANGRY customers` changing over time) 
+           and deciding on new actions (or no action) based on these changes illustrate the system's dynamic responsiveness and integration of customer state 
+           with agent behavior.
+
+       Consistency/Feature Highlight Log Examples:
+           - Seamless Component Interaction: Observing log sequences where events in one component trigger actions in another 
+           (e.g., a customer state change prompting a GOAP decision, which leads to pathfinding and steering logs) consistently demonstrates the smooth 
+           and intended interaction between FSM, GOAP, A*, and Steering throughout the simulation run.
+           - Emergent Behavior Consistency: The overall pattern of customers arriving, being seated, ordering, eating, and leaving, facilitated by the agent's actions, 
+           repeating consistently throughout the simulation run highlights the predictable and functional emergent behavior of the integrated system.
+           - Consistent Simulation Loop: The regular occurrence of `[World] Tick XXX: drawAll()` logs across the entire output demonstrates the consistent progression 
+           of the simulation through its update loop, where all components are processed predictably each tick.
+       
+       ILO Mapping: Directly addresses ILO5 (Combine multiple AI techniques) by demonstrating the successful interplay 
+       and synergy of FSMs (customer states and behaviors), GOAP (agent decision-making and task management), A* (pathfinding for efficient movement), 
+       and Steering (smooth and realistic movement execution) working together seamlessly to produce the complex, emergent behavior of the restaurant simulation. 
+       This section provides holistic evidence from the logs that the individual AI components are effectively integrated into a functional system, 
+       reinforcing their practical application (ILO1, ILO2, ILO3, and ILO4) within a complete scenario.
+
+7. ILO Alignment
+ILO1
+(Software development techniques: OOP & rendering) - Demonstrated through the modular design of agents, customers, and world, and the visual representation of states and movement in the simulation output and corresponding logs.
+ILO2
+(Graph & path-planning techniques) - Demonstrated through the implementation and use of the A* pathfinding algorithm on the grid-based navigation graph, as evidenced by path calculation logs showing obstacle avoidance and waypoint generation.
+ILO3
+(Steering force models) - Demonstrated through the servo agent's smooth and incremental movement between positions, including navigating complex paths and avoiding obstacles, observable in the detailed position logs across ticks.
+ILO4
+(Adaptive planning actions) - Demonstrated through the GOAP planner's ability to dynamically assess the changing world state (customer needs, table availability) and rationally select and sequence actions to achieve goals, as shown by GOAP decision logs and world state evaluations.
+ILO5
+(Combine multiple AI techniques) - Demonstrated through the successful integration and synergistic interaction of FSMs, GOAP, A* pathfinding, and steering, resulting in a functional restaurant simulation where intelligent agents effectively manage dynamic customer demands, 
+evidenced by comprehensive log sequences illustrating component interplay and emergent system behavior.
+

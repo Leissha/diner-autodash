@@ -1,0 +1,4 @@
+num_servos,avg_wait_time_mean,avg_wait_time_std,satisfaction_rate_mean,satisfaction_rate_std,service_rate_mean,service_rate_std,profit_mean,profit_std,cpu_ms_mean,cpu_ms_std
+1,29.61,0.0,21.57,0.0,21.57,0.0,-638.0,0.0,0.53,0.03
+2,28.67,0.0,39.22,0.0,39.22,0.0,54.67,0.0,0.71,0.03
+3,27.94,0.0,62.75,0.0,62.75,0.0,1040.0,0.0,1.09,0.17
