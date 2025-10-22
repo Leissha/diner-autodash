@@ -10,16 +10,15 @@ Inspired by the classic game Diner Dash and studies in AI for Games, Dinner Auto
 - One "servo" agent (the waiter) who uses a GOAP planner + A* pathfinding + steering to seat customers and deliver orders
 - Customers follow an FSM (WAITING→ANGRY→LEAVING if not served; SEATED→ORDERED→EATING→LEAVING if served)
 
-## Demo Videos
-
+## Demo
 - **Single servo agent demonstration**: 
   
   <img src="Docs/Adobe%20Express%20-%201_Servo_agent.gif" width="800" alt="Single Agent Demo">
-
+  *1 tick simulates 3 real-world minutes*
 - **Multi-agent simulation with vector motion calculations**: 
   
   <img src="Docs/Adobe%20Express%20-%203_servo_agents_with_force_calc.gif" width="800" alt="Multi Agent Demo">
-
+  *1 tick simulates 3 real-world minutes*
 
 ## Installation
 
